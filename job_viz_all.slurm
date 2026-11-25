@@ -27,12 +27,14 @@ AXIS=z
 # ---
 
 mkdir -p viz
+rc=0
 for VTU in $SNAPSHOTS; do
   python3 viz_yt.py "$VTU" --res $RES --field "$FIELD" --width $WIDTH --axis $AXIS \
-    --out "viz/$(basename $VTU .vtu)_$FIELD" || echo "FAILED $VTU"
+    --out "viz/$(basename $VTU .vtu)_$FIELD" || { echo "FAILED $VTU"; rc=1; }
 done
 
 # series products: animated gif + side-by-side montage, fixed color scale
 python3 viz_series.py "$SNAPSHOTS" --field "$FIELD" --width $WIDTH \
-  --axis $AXIS --res $RES --out "viz/${TAG}_${FIELD}" || echo "SERIES FAILED"
+  --axis $AXIS --res $RES --out "viz/${TAG}_${FIELD}" || { echo "SERIES FAILED"; rc=1; }
 ls viz/
+[ $rc -eq 0 ] || { echo "VIZALL INCOMPLETE"; exit 1; }

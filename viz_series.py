@@ -110,7 +110,8 @@ def main():
         plt.close(fig)
         pngs.append(png)
     gifpath = f"{args.out}_series.gif"
-    with imageio.get_writer(gifpath, mode='I', duration=1.0 / args.fps, loop=0) as w:
+    # pillow expects duration in milliseconds
+    with imageio.get_writer(gifpath, mode='I', duration=1000.0 / args.fps, loop=0) as w:
         for png in pngs:
             w.append_data(imageio.imread(png))
         print(f"wrote {gifpath} ({len(pngs)} frames)")
