@@ -62,12 +62,14 @@ TMPD=$(mktemp -d)
 git clone --branch devin/mhd-runs https://github.com/hugocamba-FTW/coldclouds.git "$TMPD/cc"
 cp "$TMPD"/cc/mhd/Fl10/* $VSC_DATA/coldclouds_mhd/
 cp "$TMPD"/cc/run_series.sh $VSC_DATA/coldclouds_mhd/
+cp "$TMPD"/cc/vsc/{job_test.slurm,job_run.slurm,job_viz.slurm,viz_yt.py} $VSC_DATA/coldclouds_mhd/
 rm -rf "$TMPD"
 ```
 
 **Option B — upload through the ondemand Files tab:**
 browse to `$VSC_DATA/coldclouds_mhd` in the Files app and upload the files
-from your laptop (select all files inside `mhd/Fl10`).
+from your laptop (select all files inside `mhd/Fl10`, plus `job_test.slurm`,
+`job_run.slurm`, `job_viz.slurm` and `viz_yt.py` from `vsc/`).
 
 ## 2. Compile (interactive session on wice)
 

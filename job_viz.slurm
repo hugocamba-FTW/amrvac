@@ -36,6 +36,6 @@ AXIS=z
 # ---
 
 mkdir -p viz
-python3 viz_yt.py "$VTU" --res $RES --field "$FIELD" --width $WIDTH --axis $AXIS --out "viz/$(basename $VTU .vtu)_$FIELD"
+python3 viz_yt.py "$VTU" --res $RES --field "$FIELD" --width $WIDTH --axis $AXIS --out "viz/$(basename $VTU .vtu)_$FIELD" || { echo "VIZ FAILED"; exit 1; }
 echo "plots in $VSC_DATA/coldclouds_mhd/viz/"
 ls viz/

@@ -39,19 +39,26 @@ def read_vtu(fname):
     return reader.GetOutput()
 
 
-def probe_uniform(grid, res, zoom=None):
+def probe_uniform(grid, res, zoom=None, axis='z'):
     """Resample cell data of an unstructured grid onto a uniform image grid.
 
-    zoom: if given, probe only a cube of this width centered on the domain
+    zoom: if given, probe only a window of this width centered on the domain
     center (in code units) — much better effective resolution on the cloud.
+    The projection axis keeps the full domain depth so projections integrate
+    the whole line of sight, and the window is clamped to the domain so no
+    probe point falls outside (which would read as a false zero).
     """
     gb = grid.GetBounds()  # (x0,x1,y0,y1,z0,z1)
     if zoom:
         cx = (gb[0] + gb[1]) / 2; cy = (gb[2] + gb[3]) / 2; cz = (gb[4] + gb[5]) / 2
         h = zoom / 2
-        x0, x1 = cx - h, cx + h
-        y0, y1 = cy - h, cy + h
-        z0, z1 = cz - h, cz + h
+        x0 = max(cx - h, gb[0]); x1 = min(cx + h, gb[1])
+        y0 = max(cy - h, gb[2]); y1 = min(cy + h, gb[3])
+        z0 = max(cz - h, gb[4]); z1 = min(cz + h, gb[5])
+        # keep full depth along the projection axis
+        if axis == 'x': x0, x1 = gb[0], gb[1]
+        elif axis == 'y': y0, y1 = gb[2], gb[3]
+        else: z0, z1 = gb[4], gb[5]
     else:
         x0, x1, y0, y1, z0, z1 = gb
     nx = ny = nz = res
@@ -109,7 +116,7 @@ def main():
 
     zoom = args.width * 1.5 if args.width else None  # probe a bit wider than the plot window
     print(f"probing onto {args.res}^3 uniform grid{f' (zoomed cube of {zoom:.1f} kpc)' if zoom else ''} ...")
-    fields, fbbox, dx = probe_uniform(grid, args.res, zoom=zoom)
+    fields, fbbox, dx = probe_uniform(grid, args.res, zoom=zoom, axis=args.axis)
     print("  fields:", sorted(fields))
 
     import yt
