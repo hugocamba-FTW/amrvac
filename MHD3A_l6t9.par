@@ -46,7 +46,7 @@
  &meshlist
    refine_criterion = 1
    refine_max_level = 6
-   max_blocks = 100000
+   max_blocks = 2000
    block_nx1  = 8
    block_nx2  = 8
    block_nx3  = 8
