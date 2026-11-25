@@ -1,6 +1,6 @@
 #!/bin/bash -l
-#SBATCH --job-name=MHD3A
-#SBATCH -t 24:00:00
+#SBATCH --job-name=ccrun
+#SBATCH -t 12:00:00
 #SBATCH --cluster=wice
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=72
@@ -8,11 +8,12 @@
 #SBATCH --mail-user=youremailadres@student.kuleuven.be
 #SBATCH -A lp_edu_amrvac
 
-# Production template. Set PAR to the par file to run, then:
-#   sbatch job_run.slurm
-# For several independent runs, submit one job per par (see VSC_GUIDE.md §6).
+# Production run. Pass the par file as argument:
+#   sbatch job_run.slurm MHD3A_l5t9.par
+# (default: MHD3A.par). Edit walltime/nodes above as needed;
+# wice has at most 72 tasks per node.
 
-PAR=MHD3A.par
+PAR="${1:-MHD3A.par}"
 
 module load foss/2025a
 cd $VSC_DATA/coldclouds_mhd
