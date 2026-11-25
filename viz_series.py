@@ -60,6 +60,9 @@ def main():
     ap.add_argument('--time-unit', type=float, default=8.4,
                     help='Myr per code time unit (8.4 for the Fl10 setup: '
                          'unit_length=1 kpc, unit_temperature=1e6 K)')
+    ap.add_argument('--tcc', type=float, default=None,
+                    help='cloud-crushing time in code units; if given, time is '
+                         'shown as t/tcc instead of Myr (2.9 for the Fl10 setup)')
     args = ap.parse_args()
 
     files = sorted(glob.glob(args.pattern))
@@ -110,7 +113,10 @@ def main():
     def tag_of(f, t):
         tag = f.split('/')[-1].rsplit('.vtu', 1)[0]
         if t is not None:
-            tag += f"  —  t = {t * args.time_unit:.1f} Myr"
+            if args.tcc:
+                tag += f"  —  t/tcc = {t / args.tcc:.2f}"
+            else:
+                tag += f"  —  t = {t * args.time_unit:.1f} Myr"
         return tag
 
     # pass 2: gif frames, uniform figure size so the animation doesn't jitter
