@@ -183,6 +183,45 @@ done
   ondemand Files tab and run it locally. Tested against real MHD3A_test
   output.
 
+### Rendering all snapshots in one batch job
+
+Login-node Python is too old for yt — run the viz as a batch job. The
+first run of `job_viz.slurm` builds a venv in `$VSC_DATA/venv-viz`; after
+that, jobs start rendering immediately. To render every snapshot of the
+test run in one job, create `job_viz_all.slurm` next to the par files:
+
+```bash
+#!/bin/bash -l
+#SBATCH --job-name=vizall
+#SBATCH -t 01:00:00
+#SBATCH --cluster=wice
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=4
+#SBATCH -A lp_edu_amrvac
+
+module load cluster/wice/batch 2>/dev/null
+source $VSC_DATA/venv-viz/bin/activate
+pip install -q imageio 2>/dev/null   # one-time, tiny; already present afterwards
+cd $VSC_DATA/coldclouds_mhd
+mkdir -p viz
+for VTU in output/MHD3A_test/*.vtu; do
+  python3 viz_yt.py "$VTU" --res 256 --field rho --width 4 --axis z \
+    --out "viz/$(basename $VTU .vtu)_rho" || echo "FAILED $VTU"
+done
+# series products: animated gif + side-by-side montage, fixed color scale
+python3 viz_series.py "output/MHD3A_test/*.vtu" --field rho --width 4 \
+  --axis z --res 256 --out viz/MHD3A_test_rho
+ls viz/
+```
+
+then `sbatch job_viz_all.slurm`. Products in `viz/`: per-snapshot yt
+slice/projection PNGs, `MHD3A_test_rho_series.gif` (all frames, fixed
+color scale) and `MHD3A_test_rho_montage.png` (up to 5 evenly spaced
+snapshots side by side). Tunables: `--fps` for the gif speed, `--montage`
+for the panel count, `--field` any of rho, p, T, v1..v3, b1..b3, trp1.
+Note: because the course reservation is magnetic for lp_edu_amrvac, viz
+jobs may pend until the reservation window starts — that is expected.
+
 ## Troubleshooting
 
 | symptom | fix |
