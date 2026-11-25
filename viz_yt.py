@@ -39,16 +39,27 @@ def read_vtu(fname):
     return reader.GetOutput()
 
 
-def probe_uniform(grid, res, bbox=None):
-    """Resample cell data of an unstructured grid onto a uniform image grid."""
-    if bbox is None:
-        bbox = grid.GetBounds()
+def probe_uniform(grid, res, zoom=None):
+    """Resample cell data of an unstructured grid onto a uniform image grid.
+
+    zoom: if given, probe only a cube of this width centered on the domain
+    center (in code units) — much better effective resolution on the cloud.
+    """
+    gb = grid.GetBounds()  # (x0,x1,y0,y1,z0,z1)
+    if zoom:
+        cx = (gb[0] + gb[1]) / 2; cy = (gb[2] + gb[3]) / 2; cz = (gb[4] + gb[5]) / 2
+        h = zoom / 2
+        x0, x1 = cx - h, cx + h
+        y0, y1 = cy - h, cy + h
+        z0, z1 = cz - h, cz + h
+    else:
+        x0, x1, y0, y1, z0, z1 = gb
     nx = ny = nz = res
     # slightly inset the box so probe points stay inside the domain
     eps = 1e-6
-    x0, x1 = bbox[0] + eps, bbox[1] - eps
-    y0, y1 = bbox[2] + eps, bbox[3] - eps
-    z0, z1 = bbox[4] + eps, bbox[5] - eps
+    x0, x1 = x0 + eps, x1 - eps
+    y0, y1 = y0 + eps, y1 - eps
+    z0, z1 = z0 + eps, z1 - eps
 
     img = vtk.vtkImageData()
     img.SetDimensions(nx, ny, nz)
@@ -96,8 +107,9 @@ def main():
     print(f"  {grid.GetNumberOfCells()} cells in {grid.GetNumberOfPieces() if hasattr(grid, 'GetNumberOfPieces') else '?'} pieces"
           if hasattr(grid, 'GetNumberOfPieces') else f"  {grid.GetNumberOfCells()} cells")
 
-    print(f"probing onto {args.res}^3 uniform grid ...")
-    fields, fbbox, dx = probe_uniform(grid, args.res)
+    zoom = args.width * 1.5 if args.width else None  # probe a bit wider than the plot window
+    print(f"probing onto {args.res}^3 uniform grid{f' (zoomed cube of {zoom:.1f} kpc)' if zoom else ''} ...")
+    fields, fbbox, dx = probe_uniform(grid, args.res, zoom=zoom)
     print("  fields:", sorted(fields))
 
     import yt
