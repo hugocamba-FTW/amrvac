@@ -31,6 +31,15 @@ import imageio.v2 as imageio
 from viz_yt import read_vtu, probe_uniform
 
 
+def snapshot_time(fname):
+    """Read the TIME scalar AMRVAC embeds in the vtu FieldData (code units)."""
+    import re
+    with open(fname, 'rb') as fh:
+        head = fh.read(8192).decode('ascii', errors='ignore')
+    m = re.search(r'Name="TIME"[^>]*>\s*([0-9.eE+-]+)', head)
+    return float(m.group(1)) if m else None
+
+
 def midplane(arr, axis):
     """Slice a 3D x-fastest array through the central plane of `axis`."""
     idx = {'x': 0, 'y': 1, 'z': 2}[axis]
@@ -48,6 +57,9 @@ def main():
     ap.add_argument('--out', default='series')
     ap.add_argument('--fps', type=float, default=2.0)
     ap.add_argument('--montage', type=int, default=5, help='max frames in the side-by-side panel')
+    ap.add_argument('--time-unit', type=float, default=8.4,
+                    help='Myr per code time unit (8.4 for the Fl10 setup: '
+                         'unit_length=1 kpc, unit_temperature=1e6 K)')
     args = ap.parse_args()
 
     files = sorted(glob.glob(args.pattern))
@@ -67,7 +79,7 @@ def main():
         if args.field not in fields:
             print(f"  field {args.field} not in {sorted(fields)}, skipping")
             continue
-        frames.append((f, midplane(fields[args.field], args.axis)))
+        frames.append((f, midplane(fields[args.field], args.axis), snapshot_time(f)))
         # plot-plane extents in kpc for axis labels
         plane = {'x': (fbbox[1], fbbox[2]), 'y': (fbbox[0], fbbox[2]), 'z': (fbbox[0], fbbox[1])}[args.axis]
         extent = [plane[0][0], plane[0][1], plane[1][0], plane[1][1]]
@@ -76,7 +88,7 @@ def main():
         return 1
 
     # fixed color scale from global percentiles of positive values
-    allvals = np.concatenate([fr[1].ravel() for fr in frames])
+    allvals = np.concatenate([fr[1].ravel() for fr in frames])  # fr = (file, slice, time)
     pos = allvals[allvals > 0]
     if len(pos) and np.all(allvals >= 0):
         vmin, vmax = np.percentile(pos, 1), np.percentile(pos, 99.9)
@@ -95,14 +107,19 @@ def main():
         ax.set_title(title, fontsize=9)
         return im
 
+    def tag_of(f, t):
+        tag = f.split('/')[-1].rsplit('.vtu', 1)[0]
+        if t is not None:
+            tag += f"  —  t = {t * args.time_unit:.1f} Myr"
+        return tag
+
     # pass 2: gif frames, uniform figure size so the animation doesn't jitter
     import os
     os.makedirs(os.path.dirname(args.out) or '.', exist_ok=True)
     pngs = []
-    for i, (f, data) in enumerate(frames):
+    for i, (f, data, t) in enumerate(frames):
         fig, ax = plt.subplots(figsize=(5.2, 4.6), dpi=110)
-        tag = f.split('/')[-1].rsplit('.vtu', 1)[0]
-        im = render(ax, data, f"{args.field} — {tag}")
+        im = render(ax, data, f"{args.field} — {tag_of(f, t)}")
         fig.colorbar(im, ax=ax, label=args.field)
         fig.tight_layout()
         png = f"{args.out}_frame{i:03d}.png"
@@ -123,9 +140,8 @@ def main():
     if n == 1:
         axes = [axes]
     im = None
-    for ax, (f, data) in zip(axes, picks):
-        tag = f.split('/')[-1].rsplit('.vtu', 1)[0]
-        im = render(ax, data, tag)
+    for ax, (f, data, t) in zip(axes, picks):
+        im = render(ax, data, tag_of(f, t))
     fig.subplots_adjust(right=0.88, wspace=0.35)
     cax = fig.add_axes([0.90, 0.15, 0.015, 0.7])
     fig.colorbar(im, cax=cax, label=args.field)
